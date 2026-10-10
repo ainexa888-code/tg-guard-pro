@@ -1,0 +1,38 @@
+services:
+  - type: worker
+    name: tg-guard-pro-worker
+    runtime: python
+    region: singapore
+    plan: starter
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python app/main.py"
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: BOT_NAME
+        value: TG GUARD PRO
+      - key: TIMEZONE
+        value: Asia/Kolkata
+      - key: DEFAULT_LANGUAGE
+        value: Hindi
+      - key: BOT_TOKEN
+        sync: false
+      - key: OWNER_ID
+        sync: false
+      - key: LOG_CHAT_ID
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tg-guard-pro-db
+          property: connectionString
+      - key: REDIS_URL
+        sync: false
+
+databases:
+  - name: tg-guard-pro-db
+    databaseName: tg_guard_pro
+    user: tg_guard_user
+    region: singapore
+    plan: free
