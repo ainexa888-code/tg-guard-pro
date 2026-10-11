@@ -15,14 +15,18 @@ from app.bot.keyboards.dashboard import (
     build_dashboard_main_menu,
     build_toggle_keyboard,
 )
+from app.config import get_settings
 from app.core.permissions import is_user_admin
 from app.database.repositories.group_repo import (
+    get_active_groups,
     get_blocked_words,
     get_domain_rules,
     get_group_settings,
     get_keyword_reactions,
     update_group_settings,
 )
+
+settings = get_settings()
 from app.database.repositories.moderation_repo import get_audit_logs
 from app.services.analytics import AnalyticsService
 
@@ -45,6 +49,12 @@ async def cmd_start(message: Message, bot: Bot, session: AsyncSession) -> None:
             "• 📊 पूर्ण ग्रुप एनालिटिक्स एवं ऑडिट लॉग्स\n\n"
             "अपने ग्रुप को सुरक्षित करने के लिए मुझे अपने ग्रुप में जोड़ें और एडमिन बनाएं!"
         )
+        if message.from_user.id == settings.owner_id:
+            start_text += (
+                "\n\n👑 <b>सुपर एडमिन एक्सेस सक्रिय!</b>\n"
+                "आप अपने सभी कनेक्टेड ग्रुप्स को नियंत्रित करने के लिए <code>/panel</code> या <code>/groups</code> का उपयोग कर सकते हैं।"
+            )
+
         kb = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -58,21 +68,41 @@ async def cmd_start(message: Message, bot: Bot, session: AsyncSession) -> None:
         await message.reply(start_text, reply_markup=kb)
     else:
         # In groups
-        if await is_user_admin(bot, message.chat.id, message.from_user.id):
+        if await is_user_admin(bot, message.chat.id, message.from_user.id) or message.from_user.id == settings.owner_id:
             await message.reply(
                 "🎛️ <b>TG GUARD PRO V3 कंट्रोल पैनल:</b>\nनीचे दिए गए मेनू से सेटिंग्स प्रबंधित करें:",
                 reply_markup=build_dashboard_main_menu(message.chat.id),
             )
 
 
-@router.message(Command("panel"), Command("dashboard"))
+@router.message(Command("panel"), Command("dashboard"), Command("groups"))
 async def cmd_panel(message: Message, bot: Bot, session: AsyncSession) -> None:
-    """Opens the interactive dashboard in a group."""
+    """Opens the interactive dashboard in a group or for bot owner in private chat."""
     if message.chat.type == "private":
-        await message.reply("डैशबोर्ड पैनल खोलने के लिए मुझे ग्रुप में उपयोग करें।")
-        return
+        if message.from_user.id == settings.owner_id:
+            groups = await get_active_groups(session)
+            if not groups:
+                await message.reply(
+                    "🏢 <b>कोई ग्रुप अभी तक नहीं जुड़ा है।</b>\n\n"
+                    "बॉट को अपने ग्रुप में जोड़ें और उसे <b>Admin</b> बनाएं। जैसे ही ग्रुप में कोई मैसेज आएगा, वह यहाँ सूची में दिखाई देगा।"
+                )
+                return
+            buttons = [
+                [InlineKeyboardButton(text=f"🏢 {g.title}", callback_data=f"dash:main:{g.id}")]
+                for g in groups[:15]
+            ]
+            kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+            await message.reply(
+                "👑 <b>सुपर एडमिन कंट्रोल पैनल (Super Admin Dashboard)</b>\n\n"
+                "आप बॉट के मालिक हैं। जिस भी ग्रुप की सुरक्षा सेटिंग्स, एंटी-स्पैम, कैप्चा या लॉग्स देखने/बदलने हैं, उस ग्रुप पर टैप करें:",
+                reply_markup=kb,
+            )
+            return
+        else:
+            await message.reply("डैशबोर्ड खोलने के लिए मुझे अपने ग्रुप में एडमिन बनाएं और ग्रुप में <code>/panel</code> टाइप करें।")
+            return
 
-    if not await is_user_admin(bot, message.chat.id, message.from_user.id):
+    if not await is_user_admin(bot, message.chat.id, message.from_user.id) and message.from_user.id != settings.owner_id:
         await message.reply("❌ केवल ग्रुप एडमिनिस्ट्रेटर डैशबोर्ड खोल सकते हैं।")
         return
 
@@ -83,7 +113,9 @@ async def cmd_panel(message: Message, bot: Bot, session: AsyncSession) -> None:
 
 
 async def _verify_callback_admin(query: CallbackQuery, bot: Bot, chat_id: int) -> bool:
-    """Ensures caller has admin privileges on the requested group."""
+    """Ensures caller has admin privileges on the requested group or is global bot owner."""
+    if query.from_user.id == settings.owner_id:
+        return True
     if not await is_user_admin(bot, chat_id, query.from_user.id):
         await query.answer("❌ केवल एडमिन ही यह बदलाव कर सकते हैं।", show_alert=True)
         return False
