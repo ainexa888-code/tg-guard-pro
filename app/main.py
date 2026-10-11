@@ -43,7 +43,7 @@ async def start_web_health_server(port: int) -> web.AppRunner:
     app = web.Application()
 
     async def health_handler(request: web.Request) -> web.Response:
-        return web.json_response({"status": "healthy", "service": "TG GUARD PRO V3"})
+        return web.json_response({"status": "healthy", "service": "Group Predictor Bot V4"})
 
     app.router.add_get("/", health_handler)
     app.router.add_get("/health", health_handler)
@@ -58,7 +58,7 @@ async def start_web_health_server(port: int) -> web.AppRunner:
 
 async def main() -> None:
     """Main application lifecycle runner."""
-    logger.info("Initializing TG GUARD PRO V3...")
+    logger.info("Initializing Group Predictor Bot V4...")
     logger.info(
         f"Environment: {settings.environment} | Database: {settings.database_url.split('@')[-1] if '@' in settings.database_url else 'local'}"
     )
