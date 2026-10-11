@@ -28,17 +28,17 @@ flowchart TD
 
 ## 2. Deploying on Render (Step-by-Step)
 
-### Option A: Using Render Blueprints (`render.yaml`)
+### Option A: Using Render Blueprints (`render.yaml`) — 100% Free Tier (No Card Required)
 1. In your Render Dashboard, click **New +** -> **Blueprint**.
 2. Connect your `tg-guard-pro` GitHub repository.
-3. Render will detect `render.yaml` and configure:
-   - **Service:** `tg-guard-pro-worker` (Background Worker)
-   - **Database:** `tg-guard-pro-db` (PostgreSQL)
+3. Render will detect `render.yaml` configured on the **Free Plan** (`plan: free`):
+   - **Web Service:** `tg-guard-pro` (Free compute with HTTP health check)
+   - **Database:** `tg-guard-pro-db` (Free PostgreSQL)
 4. Add the secret environment variables:
    - `BOT_TOKEN`: Your Telegram Bot API token
    - `OWNER_ID`: Your Telegram numeric user ID
    - `LOG_CHAT_ID`: Your private channel/group ID for alerts (or `0`)
-5. Click **Apply**.
+5. Click **Apply** — Render will deploy without requiring any payment or credit card details.
 
 ### Option B: Manual Setup
 1. **Create PostgreSQL Database:**

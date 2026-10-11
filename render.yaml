@@ -1,9 +1,9 @@
 services:
-  - type: worker
-    name: tg-guard-pro-worker
+  - type: web
+    name: tg-guard-pro
     runtime: python
     region: singapore
-    plan: starter
+    plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python app/main.py"
     envVars:
@@ -27,8 +27,8 @@ services:
         fromDatabase:
           name: tg-guard-pro-db
           property: connectionString
-      - key: REDIS_URL
-        sync: false
+      - key: PORT
+        value: 10000
 
 databases:
   - name: tg-guard-pro-db

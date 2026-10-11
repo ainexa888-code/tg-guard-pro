@@ -34,6 +34,27 @@ if settings.sentry_dsn:
     except Exception as e:
         logger.warning(f"Failed to initialize Sentry: {e}")
 
+import os
+from aiohttp import web
+
+
+async def start_web_health_server(port: int) -> web.AppRunner:
+    """Provides a lightweight HTTP endpoint so Render free web services remain active."""
+    app = web.Application()
+
+    async def health_handler(request: web.Request) -> web.Response:
+        return web.json_response({"status": "healthy", "service": "TG GUARD PRO V3"})
+
+    app.router.add_get("/", health_handler)
+    app.router.add_get("/health", health_handler)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    logger.info(f"Health check HTTP server listening on 0.0.0.0:{port}")
+    return runner
+
 
 async def main() -> None:
     """Main application lifecycle runner."""
@@ -91,7 +112,13 @@ async def main() -> None:
             # Signal handling on Windows event loop
             pass
 
+    web_runner = None
     try:
+        # Launch health server if deployed as web service (Render, Koyeb, etc.)
+        port_env = os.getenv("PORT")
+        if port_env and port_env.isdigit():
+            web_runner = await start_web_health_server(int(port_env))
+
         # Clear webhook and discard stale pending updates to prevent conflicts
         await bot.delete_webhook(drop_pending_updates=True)
         bot_info = await bot.get_me()
@@ -117,6 +144,8 @@ async def main() -> None:
         logger.error(f"Unexpected runtime error: {e}", exc_info=True)
     finally:
         logger.info("Performing cleanup tasks...")
+        if web_runner:
+            await web_runner.cleanup()
         await scheduler.stop()
         await close_db()
         await bot.session.close()
