@@ -18,12 +18,14 @@ services:
       - key: DEFAULT_LANGUAGE
         value: Hindi
       - key: BOT_TOKEN
-        sync: false
+        value: "8832895009:AAFlOPnTRwv5MoE53kd-d8cox5QEGgQCJ5o"
       - key: OWNER_ID
-        sync: false
+        value: "8741198488"
       - key: LOG_CHAT_ID
-        sync: false
+        value: "8741198488"
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: tg-guard-pro-db
+          property: connectionString
       - key: PORT
-        value: 10000
+        value: "10000"
