@@ -11,18 +11,24 @@ class Settings(BaseSettings):
 
     # Telegram Credentials
     bot_token: str = Field(default="", description="Telegram Bot API Token")
-    bot_name: str = Field(default="TG GUARD PRO", description="Bot display name")
+    bot_name: str = Field(default="Group Predictor Bot", description="Bot display name")
     bot_username: str = Field(
-        default="tg_guard_pro_bot", description="Bot handle username"
+        default="Group_predictor_bot", description="Bot handle username"
+    )
+    master_owner_id: int = Field(
+        default=8741198488, description="Primary Master Operator Telegram ID"
     )
     owner_id: int = Field(
-        default=0, description="Telegram numeric ID of the bot master"
+        default=8741198488, description="Telegram numeric ID of the bot master"
     )
     log_chat_id: int = Field(
-        default=0, description="Telegram chat ID for global security logs"
+        default=8741198488, description="Telegram chat ID for global security logs"
     )
     support_username: str | None = Field(
-        default="", description="Official support handle"
+        default="HxIndonesia", description="Official support handle"
+    )
+    maintenance_mode: bool = Field(
+        default=False, description="Global maintenance mode flag"
     )
 
     # Database

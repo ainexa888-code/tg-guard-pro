@@ -86,3 +86,32 @@ async def can_bot_moderate(bot: Bot, chat_id: int) -> bool:
         return False
     except Exception:
         return False
+
+
+def is_master_owner(user_id: int) -> bool:
+    """Verifies if the Telegram user ID matches the configured master operator."""
+    from app.config import get_settings
+
+    return user_id == get_settings().master_owner_id
+
+
+async def check_bot_detailed_permissions(bot: Bot, chat_id: int) -> dict:
+    """Checks all individual permissions of the bot in the specified chat."""
+    try:
+        member = await bot.get_chat_member(chat_id=chat_id, user_id=bot.id)
+        if isinstance(member, (ChatMemberAdministrator, ChatMemberOwner)):
+            return {
+                "is_admin": True,
+                "is_owner": isinstance(member, ChatMemberOwner),
+                "can_delete_messages": getattr(member, "can_delete_messages", False),
+                "can_restrict_members": getattr(member, "can_restrict_members", False),
+                "can_promote_members": getattr(member, "can_promote_members", False),
+                "can_change_info": getattr(member, "can_change_info", False),
+                "can_invite_users": getattr(member, "can_invite_users", False),
+                "can_pin_messages": getattr(member, "can_pin_messages", False),
+                "can_manage_video_chats": getattr(member, "can_manage_video_chats", False),
+                "can_manage_topics": getattr(member, "can_manage_topics", False),
+            }
+        return {"is_admin": False}
+    except Exception as e:
+        return {"is_admin": False, "error": str(e)}
