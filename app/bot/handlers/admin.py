@@ -56,6 +56,70 @@ async def cmd_admins(message: Message, bot: Bot) -> None:
         await message.reply(f"❌ एडमिन सूची प्राप्त करने में त्रुटि: {e}")
 
 
+@router.message(Command("promote"))
+async def cmd_promote(message: Message, bot: Bot) -> None:
+    """Promotes a user to group administrator."""
+    if message.chat.type == "private":
+        return
+
+    if not await can_user_moderate(bot, message.chat.id, message.from_user.id):
+        await message.reply("❌ आपके पास सदस्यों को प्रमोट करने की अनुमति नहीं है।")
+        return
+
+    target_id = _get_target_user(message)
+    if not target_id:
+        await message.reply("⚠️ कृपया प्रमोट करने के लिए यूजर के मैसेज पर रिप्लाई करें: <code>/promote</code>")
+        return
+
+    try:
+        await bot.promote_chat_member(
+            chat_id=message.chat.id,
+            user_id=target_id,
+            can_manage_chat=True,
+            can_delete_messages=True,
+            can_manage_video_chats=True,
+            can_restrict_members=True,
+            can_change_info=True,
+            can_invite_users=True,
+            can_pin_messages=True,
+        )
+        await message.reply(f"👮 यूजर [<code>{target_id}</code>] को ग्रुप एडमिन बना दिया गया है!")
+    except Exception as e:
+        await message.reply(f"❌ प्रमोट करने में विफलता: {e}\n(कृपया सुनिश्चित करें कि बॉट के पास 'Add New Admins' परमिशन है)")
+
+
+@router.message(Command("demote"))
+async def cmd_demote(message: Message, bot: Bot) -> None:
+    """Demotes an administrator back to regular member."""
+    if message.chat.type == "private":
+        return
+
+    if not await can_user_moderate(bot, message.chat.id, message.from_user.id):
+        await message.reply("❌ आपके पास सदस्यों को डिमोट करने की अनुमति नहीं है।")
+        return
+
+    target_id = _get_target_user(message)
+    if not target_id:
+        await message.reply("⚠️ कृपया डिमोट करने के लिए यूजर के मैसेज पर रिप्लाई करें: <code>/demote</code>")
+        return
+
+    try:
+        await bot.promote_chat_member(
+            chat_id=message.chat.id,
+            user_id=target_id,
+            can_manage_chat=False,
+            can_delete_messages=False,
+            can_manage_video_chats=False,
+            can_restrict_members=False,
+            can_change_info=False,
+            can_invite_users=False,
+            can_pin_messages=False,
+        )
+        await message.reply(f"👤 यूजर [<code>{target_id}</code>] के एडमिन अधिकार हटा दिए गए हैं।")
+    except Exception as e:
+        await message.reply(f"❌ डिमोट करने में विफलता: {e}")
+
+
 @router.message(Command("ban"))
 async def cmd_ban(message: Message, bot: Bot, session: AsyncSession) -> None:
     """Bans a member from the group."""

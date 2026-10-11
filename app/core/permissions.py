@@ -54,13 +54,21 @@ def invalidate_admin_cache(chat_id: int, user_id: int | None = None) -> None:
 
 
 async def is_user_admin(bot: Bot, chat_id: int, user_id: int) -> bool:
-    """Verifies if the user is a chat administrator or owner."""
+    """Verifies if the user is a chat administrator, owner, or global super admin."""
+    from app.config import get_settings
+
+    if user_id == get_settings().owner_id:
+        return True
     is_admin, is_owner, _, _ = await get_user_chat_permissions(bot, chat_id, user_id)
     return is_admin or is_owner
 
 
 async def can_user_moderate(bot: Bot, chat_id: int, user_id: int) -> bool:
-    """Checks if the user has rights to restrict/moderate chat members."""
+    """Checks if the user has rights to restrict/moderate chat members or is global super admin."""
+    from app.config import get_settings
+
+    if user_id == get_settings().owner_id:
+        return True
     is_admin, is_owner, can_restrict, _ = await get_user_chat_permissions(
         bot, chat_id, user_id
     )
