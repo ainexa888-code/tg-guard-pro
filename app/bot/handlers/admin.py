@@ -88,6 +88,83 @@ async def cmd_promote(message: Message, bot: Bot) -> None:
         await message.reply(f"❌ प्रमोट करने में विफलता: {e}\n(कृपया सुनिश्चित करें कि बॉट के पास 'Add New Admins' परमिशन है)")
 
 
+@router.message(Command("coowner", "superadmin"))
+async def cmd_coowner(message: Message, bot: Bot) -> None:
+    """Promotes a user to Full Co-Owner / Super Admin with all permissions including adding admins."""
+    if message.chat.type == "private":
+        return
+
+    if not await can_user_moderate(bot, message.chat.id, message.from_user.id):
+        await message.reply("❌ आपके पास सदस्यों को सुपर एडमिन/को-ओनर बनाने की अनुमति नहीं है।")
+        return
+
+    target_id = _get_target_user(message)
+    if not target_id:
+        await message.reply("⚠️ कृपया को-ओनर बनाने के लिए यूजर के मैसेज पर रिप्लाई करें: <code>/coowner</code> या <code>/superadmin</code>")
+        return
+
+    try:
+        await bot.promote_chat_member(
+            chat_id=message.chat.id,
+            user_id=target_id,
+            can_manage_chat=True,
+            can_delete_messages=True,
+            can_manage_video_chats=True,
+            can_restrict_members=True,
+            can_promote_members=True,
+            can_change_info=True,
+            can_invite_users=True,
+            can_pin_messages=True,
+            can_manage_topics=True,
+        )
+        await message.reply(
+            f"👑 <b>यूजर [<code>{target_id}</code>] को ग्रुप का 'Super Admin / Co-Owner' बना दिया गया है!</b>\n\n"
+            f"✅ <b>पूर्ण अधिकार प्राप्त:</b>\n"
+            f"• सभी एडमिन प्रबंधन (Add/Edit Admins)\n"
+            f"• सभी सदस्यों को बैन/म्यूट करने की शक्ति\n"
+            f"• सभी मैसेज डिलीट और पिन करना\n"
+            f"• ग्रुप सेटिंग्स और इनवाइट लिंक्स बदलना"
+        )
+    except Exception as e:
+        await message.reply(
+            f"❌ को-ओनर प्रमोट करने में विफलता: {e}\n\n"
+            f"💡 <i>नोट: बॉट के पास 'Add New Admins' अधिकार होना अनिवार्य है।</i>"
+        )
+
+
+@router.message(Command("transferowner", "changeowner"))
+async def cmd_transferowner(message: Message, bot: Bot) -> None:
+    """Explains official Telegram ownership transfer steps and requirements."""
+    if message.chat.type == "private":
+        await message.reply("⚠️ इस कमांड को ग्रुप में चलाएं।")
+        return
+
+    try:
+        admins = await bot.get_chat_administrators(message.chat.id)
+        owner = next((a for a in admins if a.status == "creator"), None)
+        owner_text = f"@{owner.user.username} (ID: <code>{owner.user.id}</code>)" if owner else "अज्ञात"
+    except Exception:
+        owner_text = "N/A"
+
+    text = (
+        f"👑 <b>ग्रुप ओनरशिप ट्रांसफर गाइड ({message.chat.title})</b>\n\n"
+        f"• <b>वर्तमान ग्रुप ओनर:</b> {owner_text}\n\n"
+        f"⚠️ <b>टेलीग्राम सुरक्षा नियम:</b>\n"
+        f"टेलीग्राम बॉट एपीआई सुरक्षा कारणों से किसी बॉट को सीधे ग्रुप का 'Creator Tag' बदलने की अनुमति नहीं देता।\n\n"
+        f"📌 <b>ओनरशिप दूसरे व्यक्ति को सौंपने के 2 तरीके हैं:</b>\n\n"
+        f"1️⃣ <b>बॉट के जरिए Full Co-Owner (सुपर एडमिन) बनाएं:</b>\n"
+        f"• उस यूजर के मैसेज पर रिप्लाई करके <code>/coowner</code> लिखें।\n"
+        f"• उसे ओनर जितनी ही सारी पावर्स (किक, बैन, एडमिन बदलना) मिल जाएंगी।\n\n"
+        f"2️⃣ <b>असली मालिकाना हक (Official Creator) ट्रांसफर करें:</b>\n"
+        f"• वर्तमान ओनर अपने टेलीग्राम ऐप में ग्रुप के नाम पर टैप करें ➔ ✏️ (Edit) दबाएं।\n"
+        f"• <b>Administrators</b> में जाएं ➔ नए यूजर को एडमिन बनाएं।\n"
+        f"• सबसे नीचे लाल बटन <b>'Transfer Group Ownership'</b> पर टैप करें।\n"
+        f"• अपना 2FA पासवर्ड दर्ज करें — ओनरशिप तुरंत ट्रांसफर हो जाएगी!\n\n"
+        f"<i>(नोट: ओनरशिप ट्रांसफर के लिए टेलीग्राम खाते पर 2-Step Verification पासवर्ड कम से कम 7 दिन पुराना होना अनिवार्य है)</i>"
+    )
+    await message.reply(text)
+
+
 @router.message(Command("demote"))
 async def cmd_demote(message: Message, bot: Bot) -> None:
     """Demotes an administrator back to regular member."""
