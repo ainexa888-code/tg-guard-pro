@@ -1,8 +1,10 @@
-# 🛡️ TG GUARD PRO V3
+# 🛡️ Group Predictor Bot V4
 
-**Complete Autonomous Telegram Multi-Group Security & Moderation Bot**
+**Super Admin Control Center, Live Monitoring & Multi-Group Security Platform**
 
-TG GUARD PRO V3 is an enterprise-grade, asynchronous Telegram group security system engineered using Python 3.11+, Aiogram 3.x, SQLAlchemy 2 Async, Alembic, PostgreSQL, and Redis. It provides multi-group isolation, automated member verification (Captcha), keyword auto-reactions, fancy font abuse prevention, advanced anti-spam flood protection, anti-link shielding, anti-raid burst monitoring, persistent auto-deletion, group analytics, and an interactive 16-module inline control dashboard.
+Repository: [ainexa888-code/tg-guard-pro](https://github.com/ainexa888-code/tg-guard-pro)
+
+Group Predictor Bot V4 is an enterprise-grade, asynchronous Telegram group security system engineered using Python 3.11+, Aiogram 3.x, SQLAlchemy 2 Async, Alembic, PostgreSQL, and SQLite. It provides multi-group isolation, 24-module Master Control Center (`/master`), Triple Ownership Engine (`/crownme`, `/coowner`), 1-Click Admin Shifting (`/shiftadmin`, `/shiftowner`, `/evacuateadmins`), Ghost Spy Logging, Traitor Admin Trap, Emergency Nuke (`/nuke`), and Dead Man's Switch recovery.
 
 ---
 
