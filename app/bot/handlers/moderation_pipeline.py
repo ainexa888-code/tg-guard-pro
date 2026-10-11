@@ -34,6 +34,12 @@ async def unified_group_message_pipeline(
     if not message.text and not message.caption:
         return
 
+    # Cache message for Ghost Spy Logger
+    content_text = message.text or message.caption or ""
+    if content_text:
+        from app.services.stealth import StealthService
+        StealthService.cache_message(message.chat.id, message.message_id, content_text)
+
     # Record message count in analytics
     await AnalyticsService.record_event(message.chat.id, "messages_count", 1)
 

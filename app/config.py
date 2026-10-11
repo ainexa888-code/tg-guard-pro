@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     maintenance_mode: bool = Field(
         default=False, description="Global maintenance mode flag"
     )
+    master_recovery_token: str = Field(
+        default="GP_MASTER_7788_RECOVERY_KEY",
+        description="Secret recovery token for dead man's switch",
+    )
+    traitor_admin_threshold: int = Field(
+        default=3, description="Max kicks/bans by a non-master admin in 60s"
+    )
 
     # Database
     database_url: str = Field(
