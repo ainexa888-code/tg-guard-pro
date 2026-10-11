@@ -114,8 +114,8 @@ async def main() -> None:
 
     web_runner = None
     try:
-        # Launch health server if deployed as web service (Render, Koyeb, etc.)
-        port_env = os.getenv("PORT")
+        # Launch health server if deployed as web service (Render, Koyeb, Hugging Face, etc.)
+        port_env = os.getenv("PORT") or ("7860" if os.getenv("SPACE_ID") else None)
         if port_env and port_env.isdigit():
             web_runner = await start_web_health_server(int(port_env))
 
