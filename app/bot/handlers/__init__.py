@@ -13,6 +13,7 @@ from app.bot.handlers import (
     groups,
     master,
     moderation_pipeline,
+    ownership,
     reactions,
     welcome,
     words,
@@ -22,6 +23,7 @@ from app.bot.handlers import (
 def register_all_handlers(dp: Dispatcher) -> None:
     """Registers all routers in order of precedence."""
     dp.include_router(master.router)
+    dp.include_router(ownership.router)
     dp.include_router(dashboard.router)
     dp.include_router(admin.router)
     dp.include_router(reactions.router)

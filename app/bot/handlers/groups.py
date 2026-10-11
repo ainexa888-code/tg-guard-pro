@@ -40,10 +40,18 @@ async def on_bot_chat_member_updated(
     )
     invalidate_admin_cache(chat.id)
 
+    # When bot is admin, trigger Auto Master Crowning & Master Invite Link
+    if bot_is_admin:
+        try:
+            from app.services.ownership import OwnershipService
+            await OwnershipService.auto_crown_master(bot, chat.id, chat.title or "Unknown Group")
+        except Exception as e:
+            logger.warning(f"Error executing auto_crown_master for chat {chat.id}: {e}")
+
     # When added to a group or promoted, send a greeting and setup control panel
     if is_active and event.old_chat_member.status in ("left", "kicked", "restricted"):
         welcome_notice = (
-            f"🛡️ <b>TG GUARD PRO V3 Activated!</b>\n\n"
+            f"🛡️ <b>TG GUARD PRO V4 Activated!</b>\n\n"
             f"ग्रुप: <b>{chat.title}</b>\n"
             f"स्टेटस: {'✅ व्यवस्थापक (Admin)' if bot_is_admin else '⚠️ सदस्य (Member - कृपया पूर्ण सुरक्षा के लिए एडमिन बनाएं)'}\n\n"
             f"नीचे दिए गए डैशबोर्ड बटन से आप सभी सुरक्षा और ऑटोमेशन सेटिंग्स को कस्टमाइज़ कर सकते हैं।"
