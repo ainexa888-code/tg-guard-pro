@@ -1,5 +1,6 @@
 aiogram>=3.17.0
-sqlalchemy>=2.0.0
+sqlalchemy[asyncio]>=2.0.0
+greenlet>=3.0.0
 pydantic>=2.7.0
 pydantic-settings>=2.2.0
 alembic>=1.13.0
