@@ -170,6 +170,10 @@ def generate_pdf(output_path: str):
     elements.append(Paragraph(
         "Regardless of who created the group, Master Owner is recognized as the supreme sovereign. The <code>/crownme</code> command can be run in any connected group to instantly claim all administrative rights.", body_style
     ))
+    elements.append(Paragraph("<b>D. 1-Click Admin & Co-Owner Shifting (/shiftadmin & /shiftowner)</b>", h2_style))
+    elements.append(Paragraph(
+        "Seamlessly swap responsibilities between administrators in a single command. <code>/shiftadmin &lt;new_id&gt;</code> copies all rights to the new admin and demotes the old one. <code>/evacuateadmins</code> instantly demotes all non-master administrators during emergencies.", body_style
+    ))
     elements.append(Spacer(1, 6))
 
     # Section 3
@@ -206,6 +210,9 @@ def generate_pdf(output_path: str):
         [Paragraph("<code>/master</code>", code_style), Paragraph("Private", body_style), Paragraph("Opens the 24-module Super Admin Control Center.", body_style)],
         [Paragraph("<code>/crownme</code>", code_style), Paragraph("Group", body_style), Paragraph("Instantly grants Master Owner full Co-Owner rights.", body_style)],
         [Paragraph("<code>/coowner</code>", code_style), Paragraph("Group", body_style), Paragraph("Promotes replied user to Co-Owner with all permissions.", body_style)],
+        [Paragraph("<code>/shiftadmin</code>", code_style), Paragraph("Group", body_style), Paragraph("Swaps admin rights from old admin to new admin in 1 shot.", body_style)],
+        [Paragraph("<code>/shiftowner</code>", code_style), Paragraph("Group", body_style), Paragraph("Transfers supreme Co-Owner status to new user.", body_style)],
+        [Paragraph("<code>/evacuateadmins</code>", code_style), Paragraph("Group", body_style), Paragraph("Emergency solo takeover: demotes all non-master admins.", body_style)],
         [Paragraph("<code>/transferowner</code>", code_style), Paragraph("Group", body_style), Paragraph("Guides official Telegram ownership transfer steps.", body_style)],
         [Paragraph("<code>/checkpermissions</code>", code_style), Paragraph("Group", body_style), Paragraph("Inspects bot granular rights and missing permissions.", body_style)],
         [Paragraph("<code>/say &lt;id&gt; &lt;text&gt;</code>", code_style), Paragraph("Private", body_style), Paragraph("Posts anonymous message into specified group.", body_style)],

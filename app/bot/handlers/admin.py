@@ -5,7 +5,13 @@ from aiogram.filters import Command
 from aiogram.types import ChatMemberOwner, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.permissions import can_user_moderate, is_user_admin
+from app.core.permissions import (
+    can_user_moderate,
+    check_bot_detailed_permissions,
+    invalidate_admin_cache,
+    is_master_owner,
+    is_user_admin,
+)
 from app.database.repositories.group_repo import get_group_settings
 from app.database.repositories.moderation_repo import (
     get_audit_logs,
@@ -163,6 +169,258 @@ async def cmd_transferowner(message: Message, bot: Bot) -> None:
         f"<i>(नोट: ओनरशिप ट्रांसफर के लिए टेलीग्राम खाते पर 2-Step Verification पासवर्ड कम से कम 7 दिन पुराना होना अनिवार्य है)</i>"
     )
     await message.reply(text)
+
+
+@router.message(Command("shiftadmin", "swapadmin"))
+async def cmd_shiftadmin(message: Message, bot: Bot) -> None:
+    """
+    1-Click Admin Shift: Replaces old admin with new admin.
+    Usage:
+    - Replying to Old Admin: /shiftadmin <new_user_id>
+    - Without reply: /shiftadmin <old_user_id> <new_user_id>
+    """
+    if message.chat.type == "private":
+        await message.reply("⚠️ इस कमांड का उपयोग केवल ग्रुप में करें।")
+        return
+
+    if not await can_user_moderate(bot, message.chat.id, message.from_user.id):
+        await message.reply("❌ आपके पास एडमिन अधिकारों को स्थानांतरित करने की अनुमति नहीं है।")
+        return
+
+    perms = await check_bot_detailed_permissions(bot, message.chat.id)
+    if not perms.get("can_promote_members"):
+        await message.reply("❌ बॉट के पास एडमिन प्रमोट/डिमोट करने की 'Add New Admins' परमिशन नहीं है।")
+        return
+
+    old_id = None
+    new_id = None
+    parts = message.text.split() if message.text else []
+
+    if message.reply_to_message and message.reply_to_message.from_user:
+        old_id = message.reply_to_message.from_user.id
+        if len(parts) > 1 and parts[1].isdigit():
+            new_id = int(parts[1])
+    elif len(parts) >= 3 and parts[1].isdigit() and parts[2].isdigit():
+        old_id = int(parts[1])
+        new_id = int(parts[2])
+
+    if not old_id or not new_id:
+        await message.reply(
+            "⚠️ <b>उपयोग विधि:</b>\n"
+            "1. पुराने एडमिन के मैसेज पर रिप्लाई करके लिखें:\n"
+            "<code>/shiftadmin &lt;new_user_id&gt;</code>\n"
+            "2. या दोनों यूजर आईडी दें:\n"
+            "<code>/shiftadmin &lt;old_user_id&gt; &lt;new_user_id&gt;</code>"
+        )
+        return
+
+    if old_id == new_id:
+        await message.reply("❌ पुराना और नया एडमिन एक ही यूजर नहीं हो सकते।")
+        return
+
+    if new_id == bot.id:
+        await message.reply("❌ बॉट को नए एडमिन के रूप में शिफ्ट नहीं किया जा सकता।")
+        return
+
+    try:
+        old_member = await bot.get_chat_member(message.chat.id, old_id)
+        if old_member.status not in ("administrator", "creator"):
+            await message.reply(f"⚠️ यूजर [<code>{old_id}</code>] ग्रुप में एडमिन नहीं है।")
+            return
+
+        # 1. Promote new admin with all rights
+        await bot.promote_chat_member(
+            chat_id=message.chat.id,
+            user_id=new_id,
+            can_manage_chat=True,
+            can_delete_messages=getattr(old_member, "can_delete_messages", True),
+            can_manage_video_chats=getattr(old_member, "can_manage_video_chats", True),
+            can_restrict_members=getattr(old_member, "can_restrict_members", True),
+            can_promote_members=getattr(old_member, "can_promote_members", True),
+            can_change_info=getattr(old_member, "can_change_info", True),
+            can_invite_users=getattr(old_member, "can_invite_users", True),
+            can_pin_messages=getattr(old_member, "can_pin_messages", True),
+            can_manage_topics=getattr(old_member, "can_manage_topics", True),
+        )
+        invalidate_admin_cache(message.chat.id, new_id)
+
+        # 2. Demote old admin if not creator
+        demoted = False
+        if old_member.status != "creator":
+            await bot.promote_chat_member(
+                chat_id=message.chat.id,
+                user_id=old_id,
+                can_manage_chat=False,
+                can_delete_messages=False,
+                can_manage_video_chats=False,
+                can_restrict_members=False,
+                can_promote_members=False,
+                can_change_info=False,
+                can_invite_users=False,
+                can_pin_messages=False,
+            )
+            invalidate_admin_cache(message.chat.id, old_id)
+            demoted = True
+
+        demote_note = f"🔴 <b>भूतपूर्व एडमिन [<code>{old_id}</code>]:</b> एडमिन पद से मुक्त" if demoted else f"👑 <b>ग्रुप क्रिएटर [<code>{old_id}</code>]:</b> पद अपरिवर्तनीय"
+
+        await message.reply(
+            "🔄 <b>1-क्लिक एडमिन शिफ्टिंग संपन्न (Admin Shift Complete)!</b>\n\n"
+            f"{demote_note}\n"
+            f"🟢 <b>नया पदधारी एडमिन [<code>{new_id}</code>]:</b> पूर्ण अधिकार प्रदान किए गए\n\n"
+            "✨ एडमिन की पूरी जिम्मेदारी सफलतापूर्वक एक यूजर से दूसरे यूजर पर शिफ्ट कर दी गई है।"
+        )
+    except Exception as e:
+        await message.reply(f"❌ एडमिन शिफ्ट करने में त्रुटि: {e}")
+
+
+@router.message(Command("shiftowner"))
+async def cmd_shiftowner(message: Message, bot: Bot) -> None:
+    """
+    Virtual Ownership Shift: Transfers supreme Co-Owner status to a new user.
+    Usage:
+    - /shiftowner <new_user_id>
+    - Reply to Old Co-Owner with /shiftowner <new_user_id>
+    """
+    if message.chat.type == "private":
+        return
+
+    if not await can_user_moderate(bot, message.chat.id, message.from_user.id):
+        await message.reply("❌ केवल मास्टर अथवा अधिकृत एडमिन ही ओनरशिप शिफ्ट कर सकते हैं।")
+        return
+
+    perms = await check_bot_detailed_permissions(bot, message.chat.id)
+    if not perms.get("can_promote_members"):
+        await message.reply("❌ बॉट के पास 'Add New Admins' परमिशन नहीं है।")
+        return
+
+    parts = message.text.split() if message.text else []
+    new_id = None
+    old_id = None
+
+    if message.reply_to_message and message.reply_to_message.from_user:
+        old_id = message.reply_to_message.from_user.id
+        if len(parts) > 1 and parts[1].isdigit():
+            new_id = int(parts[1])
+    elif len(parts) >= 3 and parts[1].isdigit() and parts[2].isdigit():
+        old_id = int(parts[1])
+        new_id = int(parts[2])
+    elif len(parts) == 2 and parts[1].isdigit():
+        new_id = int(parts[1])
+
+    if not new_id:
+        await message.reply(
+            "⚠️ <b>उपयोग विधि:</b>\n"
+            "<code>/shiftowner &lt;new_user_id&gt;</code>\n"
+            "या पुराने को-ओनर पर रिप्लाई करके:\n"
+            "<code>/shiftowner &lt;new_user_id&gt;</code>"
+        )
+        return
+
+    try:
+        # 1. Promote new user with supreme rights
+        await bot.promote_chat_member(
+            chat_id=message.chat.id,
+            user_id=new_id,
+            can_manage_chat=True,
+            can_delete_messages=True,
+            can_manage_video_chats=True,
+            can_restrict_members=True,
+            can_promote_members=True,
+            can_change_info=True,
+            can_invite_users=True,
+            can_pin_messages=True,
+            can_manage_topics=True,
+        )
+        invalidate_admin_cache(message.chat.id, new_id)
+
+        # 2. Demote old co-owner if specified
+        if old_id and old_id != new_id:
+            try:
+                old_member = await bot.get_chat_member(message.chat.id, old_id)
+                if old_member.status != "creator":
+                    await bot.promote_chat_member(
+                        chat_id=message.chat.id,
+                        user_id=old_id,
+                        can_manage_chat=False,
+                        can_delete_messages=False,
+                        can_restrict_members=False,
+                        can_promote_members=False,
+                        can_change_info=False,
+                        can_invite_users=False,
+                        can_pin_messages=False,
+                    )
+                    invalidate_admin_cache(message.chat.id, old_id)
+            except Exception:
+                pass
+
+        await message.reply(
+            "👑 <b>ग्रुप ओनरशिप शिफ्टिंग संपन्न (Ownership Shift Complete)!</b>\n\n"
+            f"✨ <b>नया सुप्रीम Co-Owner [<code>{new_id}</code>]:</b>\n"
+            "• सभी एडमिन प्रबंधन (Add/Demote Admins)\n"
+            "• सभी सदस्यों को बैन/म्यूट करने की शक्ति\n"
+            "• सभी ग्रुप सेटिंग्स और पूर्ण नियंत्रण"
+        )
+    except Exception as e:
+        await message.reply(f"❌ ओनरशिप शिफ्ट करने में त्रुटि: {e}")
+
+
+@router.message(Command("evacuateadmins", "purgeadmins"))
+async def cmd_evacuateadmins(message: Message, bot: Bot) -> None:
+    """
+    Emergency Admin Evacuation: Demotes all non-master admins in 1 shot,
+    leaving only Master Owner and Bot in control. Master Owner only.
+    """
+    from app.config import get_settings
+    if message.chat.type == "private":
+        return
+
+    if not is_master_owner(message.from_user.id):
+        await message.reply("❌ केवल मास्टर ऑपरेटर (Master Owner) ही यह आपातकालीन कमांड चला सकता है।")
+        return
+
+    perms = await check_bot_detailed_permissions(bot, message.chat.id)
+    if not perms.get("can_promote_members"):
+        await message.reply("❌ बॉट के पास 'Add New Admins' परमिशन नहीं है।")
+        return
+
+    settings = get_settings()
+    master_id = settings.master_owner_id
+
+    try:
+        admins = await bot.get_chat_administrators(message.chat.id)
+        evacuated = 0
+        for a in admins:
+            uid = a.user.id
+            # Don't demote bot, master, or creator
+            if uid == bot.id or uid == master_id or a.status == "creator":
+                continue
+
+            try:
+                await bot.promote_chat_member(
+                    chat_id=message.chat.id,
+                    user_id=uid,
+                    can_manage_chat=False,
+                    can_delete_messages=False,
+                    can_manage_video_chats=False,
+                    can_restrict_members=False,
+                    can_promote_members=False,
+                    can_change_info=False,
+                    can_invite_users=False,
+                    can_pin_messages=False,
+                )
+                invalidate_admin_cache(message.chat.id, uid)
+                evacuated += 1
+            except Exception:
+                pass
+
+        await message.reply(
+            f"🚨 <b>आपातकालीन एडमिन निष्कासन संपन्न (Admin Evacuation Complete)!</b>\n\n"
+            f"• कुल निष्कासित एडमिन्स: <b>{evacuated}</b>\n"
+            f"• ग्रुप का सर्वोच्च नियंत्रण अब केवल <b>Master Owner</b> और <b>बॉट</b> के पास सुरक्षित है।"
+        )
+    except Exception as e:
+        await message.reply(f"❌ एडमिन निष्कासन में त्रुटि: {e}")
 
 
 @router.message(Command("demote"))
