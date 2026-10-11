@@ -115,9 +115,12 @@ async def main() -> None:
     web_runner = None
     try:
         # Launch health server if deployed as web service (Render, Koyeb, Hugging Face, etc.)
-        port_env = os.getenv("PORT") or ("7860" if os.getenv("SPACE_ID") else None)
+        port_env = os.getenv("PORT") or ("7860" if os.getenv("SPACE_ID") else None) or ("10000" if os.getenv("RENDER") else None)
         if port_env and port_env.isdigit():
-            web_runner = await start_web_health_server(int(port_env))
+            try:
+                web_runner = await start_web_health_server(int(port_env))
+            except Exception as we:
+                logger.warning(f"Could not bind HTTP health check server: {we}")
 
         # Clear webhook and discard stale pending updates to prevent conflicts
         await bot.delete_webhook(drop_pending_updates=True)

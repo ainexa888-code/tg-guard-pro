@@ -4,9 +4,13 @@ services:
     runtime: python
     region: singapore
     plan: free
-    buildCommand: "pip install -r requirements.txt"
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
     startCommand: "python scripts/run_bot.py"
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PYTHONUNBUFFERED
+        value: "1"
       - key: ENVIRONMENT
         value: production
       - key: LOG_LEVEL
